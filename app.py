@@ -1,0 +1,152 @@
+from __future__ import annotations
+
+import asyncio
+import os
+from pathlib import Path
+
+import streamlit as st
+import streamlit.components.v1 as components
+
+from icebreaker.config import Config
+from icebreaker.output import brief_to_html, brief_to_markdown
+from icebreaker.pipeline import run_pipeline
+from icebreaker.resolver import resolve
+from icebreaker.synthesizer import synthesize
+
+
+def bootstrap_streamlit_secrets() -> None:
+    """Expose Streamlit secrets as environment variables for existing config loading."""
+    secret_keys = [
+        "ICEBREAKER_ANTHROPIC_API_KEY",
+        "ICEBREAKER_SERPAPI_KEY",
+        "ICEBREAKER_GOOGLE_CSE_KEY",
+        "ICEBREAKER_GOOGLE_CSE_ID",
+        "ICEBREAKER_PROXYCURL_KEY",
+        "ICEBREAKER_GITHUB_TOKEN",
+    ]
+    for key in secret_keys:
+        if not os.environ.get(key):
+            value = st.secrets.get(key, "")
+            if value:
+                os.environ[key] = str(value)
+
+
+bootstrap_streamlit_secrets()
+
+st.set_page_config(
+    page_title="Icebreaker",
+    layout="wide",
+)
+
+
+def generate_profile(name: str, linkedin_url: str, company: str, location: str):
+    config = Config()
+    identity = resolve(
+        linkedin_url,
+        name=name or None,
+        company=company or None,
+        location=location or None,
+    )
+    profile = asyncio.run(run_pipeline(identity, config))
+    brief = asyncio.run(synthesize(profile, config))
+    return brief, profile
+
+
+st.title("Icebreaker")
+st.caption("Client testing app for generating relationship-intelligence profile HTML from public information.")
+
+with st.sidebar:
+    st.subheader("Setup")
+    st.write("This app needs `ICEBREAKER_ANTHROPIC_API_KEY` configured in the host environment.")
+    st.write("Search quality improves if you also provide SerpAPI or Google CSE keys.")
+
+config_ok = True
+config_error = None
+try:
+    config = Config()
+    if not config.has_anthropic():
+        config_ok = False
+        config_error = "Missing `ICEBREAKER_ANTHROPIC_API_KEY`."
+except Exception as exc:
+    config_ok = False
+    config_error = str(exc)
+
+col1, col2 = st.columns([1, 1])
+with col1:
+    name = st.text_input("Full name", placeholder="Jane Doe")
+with col2:
+    linkedin_url = st.text_input(
+        "LinkedIn profile URL",
+        placeholder="https://www.linkedin.com/in/jane-doe/",
+    )
+
+col3, col4 = st.columns([1, 1])
+with col3:
+    company = st.text_input("Company (optional)", placeholder="Acme Corp")
+with col4:
+    location = st.text_input("Location (optional)", placeholder="San Francisco")
+
+run_clicked = st.button("Generate profile HTML", type="primary", disabled=not config_ok)
+
+if not config_ok:
+    st.error(config_error or "Configuration error.")
+
+if run_clicked:
+    if not name.strip():
+        st.warning("Enter the person's full name.")
+    elif not linkedin_url.strip():
+        st.warning("Enter a LinkedIn profile URL.")
+    else:
+        with st.spinner("Gathering public data and generating the profile..."):
+            try:
+                brief, profile = generate_profile(
+                    name=name.strip(),
+                    linkedin_url=linkedin_url.strip(),
+                    company=company.strip(),
+                    location=location.strip(),
+                )
+                html = brief_to_html(brief)
+                markdown = brief_to_markdown(brief)
+                file_stem = brief.subject_name.replace(" ", "_").lower()
+
+                st.session_state["generated_html"] = html
+                st.session_state["generated_markdown"] = markdown
+                st.session_state["generated_name"] = brief.subject_name
+                st.session_state["result_count"] = len(profile.all_results())
+                st.session_state["file_stem"] = file_stem
+            except Exception as exc:
+                st.exception(exc)
+
+if "generated_html" in st.session_state:
+    st.success(
+        f"Generated profile for {st.session_state['generated_name']} from "
+        f"{st.session_state['result_count']} collected public data points."
+    )
+
+    action_col1, action_col2 = st.columns([1, 1])
+    with action_col1:
+        st.download_button(
+            "Download HTML",
+            data=st.session_state["generated_html"],
+            file_name=f"{st.session_state['file_stem']}_brief.html",
+            mime="text/html",
+            use_container_width=True,
+        )
+    with action_col2:
+        st.download_button(
+            "Download Markdown",
+            data=st.session_state["generated_markdown"],
+            file_name=f"{st.session_state['file_stem']}_brief.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+
+    with st.expander("Preview HTML", expanded=True):
+        components.html(st.session_state["generated_html"], height=900, scrolling=True)
+
+    with st.expander("Generated Markdown"):
+        st.code(st.session_state["generated_markdown"], language="markdown")
+
+    template_path = Path(__file__).parent / "icebreaker" / "templates" / "profile.html"
+    if not template_path.exists():
+        st.warning("Template file is missing, so deployment packaging should be checked before sharing.")

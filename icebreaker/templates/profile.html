@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IceBreaker: {{SUBJECT_NAME}}</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+:root[data-theme="dark"] {
+  --bg: #0d1117;
+  --bg-card: #161b22;
+  --bg-card-hover: #1c2333;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --text-muted: #6e7681;
+  --accent: #58a6ff;
+  --accent2: #7ee787;
+  --accent3: #d2a8ff;
+  --accent4: #ff7b72;
+  --accent5: #ffa657;
+  --border: #30363d;
+  --border-bright: #484f58;
+  --gradient1: linear-gradient(135deg, #58a6ff 0%, #d2a8ff 100%);
+  --gradient2: linear-gradient(135deg, #7ee787 0%, #58a6ff 100%);
+  --gradient3: linear-gradient(135deg, #ffa657 0%, #ff7b72 100%);
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+}
+:root[data-theme="light"] {
+  --bg: #f6f8fa;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f3f6;
+  --text: #1f2328;
+  --text-dim: #656d76;
+  --text-muted: #8b949e;
+  --accent: #0969da;
+  --accent2: #1a7f37;
+  --accent3: #8250df;
+  --accent4: #cf222e;
+  --accent5: #bf8700;
+  --border: #d0d7de;
+  --border-bright: #afb8c1;
+  --gradient1: linear-gradient(135deg, #0969da 0%, #8250df 100%);
+  --gradient2: linear-gradient(135deg, #1a7f37 0%, #0969da 100%);
+  --gradient3: linear-gradient(135deg, #bf8700 0%, #cf222e 100%);
+  --shadow: 0 8px 32px rgba(0,0,0,0.1);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 100;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  box-shadow: var(--shadow-sm);
+}
+.theme-toggle:hover { border-color: var(--accent); transform: scale(1.1); }
+
+/* Hero Section */
+.hero {
+  text-align: center;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--gradient1);
+}
+.hero-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--gradient1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 4px 20px rgba(88,166,255,0.3);
+}
+.hero h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: var(--gradient1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero .subtitle {
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.hero .meta {
+  margin-top: 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Mind Map */
+.mindmap-section {
+  margin-bottom: 2rem;
+}
+.mindmap-section h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.mindmap {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  height: 500px;
+  margin: 0 auto;
+}
+.mindmap-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: var(--gradient1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: white;
+  text-align: center;
+  z-index: 2;
+  box-shadow: 0 4px 24px rgba(88,166,255,0.4);
+  padding: 0.5rem;
+}
+.mindmap-node {
+  position: absolute;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  z-index: 2;
+  transition: all 0.3s;
+  max-width: 150px;
+  cursor: default;
+}
+.mindmap-node:hover {
+  border-color: var(--accent);
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(88,166,255,0.2);
+}
+.mindmap-node.cat-personality { border-color: var(--accent3); color: var(--accent3); }
+.mindmap-node.cat-interests { border-color: var(--accent2); color: var(--accent2); }
+.mindmap-node.cat-values { border-color: var(--accent5); color: var(--accent5); }
+.mindmap-node.cat-topics { border-color: var(--accent); color: var(--accent); }
+.mindmap-node.cat-activity { border-color: var(--accent4); color: var(--accent4); }
+.mindmap-line {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+.mindmap-line line {
+  stroke: var(--border);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+/* Section Styles */
+.section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.section:hover { border-color: var(--border-bright); }
+.section-header {
+  padding: 1.2rem 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  user-select: none;
+  transition: background 0.2s;
+}
+.section-header:hover { background: var(--bg-card-hover); }
+.section-icon {
+  font-size: 1.3rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.section-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex: 1;
+}
+.section-chevron {
+  color: var(--text-muted);
+  transition: transform 0.3s;
+  font-size: 1.2rem;
+}
+.section.open .section-chevron { transform: rotate(180deg); }
+.section-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+.section.open .section-content { max-height: 2000px; }
+.section-body { padding: 0 1.5rem 1.5rem; }
+
+/* Social Presence Bars */
+.social-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+.social-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--bg);
+}
+.social-icon { font-size: 1.3rem; width: 32px; text-align: center; }
+.social-info { flex: 1; }
+.social-name { font-weight: 600; font-size: 0.9rem; }
+.social-detail { color: var(--text-dim); font-size: 0.8rem; }
+.visibility-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.visibility-high { background: rgba(126,231,135,0.15); color: var(--accent2); }
+.visibility-medium { background: rgba(88,166,255,0.15); color: var(--accent); }
+.visibility-low { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+
+/* Radar Chart */
+.radar-container {
+  max-width: 450px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Cards Grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  transition: all 0.3s;
+  position: relative;
+}
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+.card-number {
+  position: absolute;
+  top: -8px;
+  left: 12px;
+  background: var(--gradient1);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.card p {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Tags */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.tag {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid;
+}
+.tag-purple { border-color: var(--accent3); color: var(--accent3); background: rgba(210,168,255,0.08); }
+.tag-green { border-color: var(--accent2); color: var(--accent2); background: rgba(126,231,135,0.08); }
+.tag-blue { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.08); }
+.tag-orange { border-color: var(--accent5); color: var(--accent5); background: rgba(255,166,87,0.08); }
+.tag-red { border-color: var(--accent4); color: var(--accent4); background: rgba(255,123,114,0.08); }
+
+/* Timeline */
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.timeline-item {
+  position: relative;
+  padding-bottom: 1.2rem;
+}
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -2rem;
+  top: 0.45rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--bg-card);
+}
+.timeline-item:first-child::before { background: var(--accent); }
+.timeline-text {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* Comm Style Quote */
+.quote-block {
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.5rem;
+  background: var(--bg);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+/* Warnings */
+.warning-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+.warning-icon { color: var(--accent5); flex-shrink: 0; }
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+}
+.footer a { color: var(--accent); text-decoration: none; }
+.footer .sources { margin-top: 0.5rem; font-size: 0.75rem; }
+
+/* Two Column Layout */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container { padding: 1rem; }
+  .hero h1 { font-size: 1.8rem; }
+  .mindmap { height: 400px; }
+  .mindmap-center { width: 90px; height: 90px; font-size: 0.8rem; }
+  .mindmap-node { font-size: 0.7rem; padding: 0.4rem 0.6rem; max-width: 110px; }
+  .two-col { grid-template-columns: 1fr; }
+  .cards-grid { grid-template-columns: 1fr; }
+}
+
+/* Print styles */
+@media print {
+  .theme-toggle { display: none; }
+  .section-content { max-height: none !important; }
+  body { background: white; color: black; }
+}
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">&#9790;</button>
+
+<div class="container" id="app">
+  <!-- Content rendered by JavaScript -->
+</div>
+
+<script>
+const DATA = {{BRIEF_DATA}};
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').innerHTML = next === 'dark' ? '&#9790;' : '&#9728;';
+}
+
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function getInitials(name) {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function getVisibilityClass(text) {
+  const t = (text || '').toLowerCase();
+  if (t.includes('high')) return 'visibility-high';
+  if (t.includes('medium')) return 'visibility-medium';
+  return 'visibility-low';
+}
+
+function getVisibilityLabel(social) {
+  if (typeof social === 'object' && social.visibility) return social.visibility;
+  return 'unknown';
+}
+
+function parseSocialPresence(social) {
+  if (!social || typeof social !== 'object') return [];
+  const platforms = [];
+  const icons = {
+    linkedin: '&#128188;', twitter: '&#128038;', instagram: '&#128247;',
+    facebook: '&#128101;', youtube: '&#9654;', blog: '&#128221;',
+    blogger: '&#128221;', github: '&#128187;', medium: '&#9997;'
+  };
+
+  // Try to extract platform info from social object
+  if (social.platforms) {
+    if (Array.isArray(social.platforms)) {
+      social.platforms.forEach(p => {
+        const name = typeof p === 'string' ? p : (p.name || p.platform || '');
+        const detail = typeof p === 'string' ? '' : (p.detail || p.description || p.url || '');
+        const key = name.toLowerCase();
+        platforms.push({ name, detail, icon: icons[key] || '&#127760;' });
+      });
+    }
+  }
+
+  // If no platforms extracted, try to parse from string values
+  if (platforms.length === 0) {
+    Object.entries(social).forEach(([k, v]) => {
+      if (k === 'visibility' || k === 'audience' || k === 'style' || k === 'posting_style') return;
+      const key = k.toLowerCase();
+      if (icons[key] || typeof v === 'string') {
+        platforms.push({
+          name: k.charAt(0).toUpperCase() + k.slice(1),
+          detail: typeof v === 'string' ? v : JSON.stringify(v),
+          icon: icons[key] || '&#127760;'
+        });
+      }
+    });
+  }
+  return platforms;
+}
+
+function scoreTraits(traits) {
+  return traits.slice(0, 8).map(t => {
+    const lower = t.toLowerCase();
+    let score = 4;
+    if (/highly|extremely|very|strong|deep|passionate/.test(lower)) score = 5;
+    else if (/somewhat|moderate|slight|limited/.test(lower)) score = 3;
+    else if (/minimal|low|rare/.test(lower)) score = 2;
+    const label = t.split(/[-—:]/).map(s => s.trim())[0].slice(0, 30);
+    return { label, score };
+  });
+}
+
+function renderMindMap(container) {
+  const topics = DATA.key_topics || [];
+  const traits = DATA.personality_traits || [];
+  const interests = DATA.personal_interests || [];
+  const values = DATA.values_and_causes || [];
+  const activity = DATA.recent_activity || [];
+
+  const categories = [
+    { items: traits.slice(0, 3), cls: 'cat-personality', label: 'Personality' },
+    { items: interests.slice(0, 3), cls: 'cat-interests', label: 'Interests' },
+    { items: values.slice(0, 3), cls: 'cat-values', label: 'Values' },
+    { items: topics.slice(0, 3), cls: 'cat-topics', label: 'Topics' },
+    { items: activity.slice(0, 2), cls: 'cat-activity', label: 'Activity' },
+  ].filter(c => c.items.length > 0);
+
+  const allNodes = [];
+  categories.forEach((cat, ci) => {
+    cat.items.forEach((item, ii) => {
+      allNodes.push({ text: item.split(/[-—:]/)[0].trim().slice(0, 35), cls: cat.cls });
+    });
+  });
+
+  const cw = container.offsetWidth;
+  const ch = container.offsetHeight;
+  const cx = cw / 2;
+  const cy = ch / 2;
+  const rx = Math.min(cw * 0.38, 320);
+  const ry = Math.min(ch * 0.38, 200);
+
+  // SVG for lines
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'mindmap-line');
+  svg.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;`;
+  container.appendChild(svg);
+
+  // Center node
+  const center = document.createElement('div');
+  center.className = 'mindmap-center';
+  center.textContent = DATA.subject_name || 'Person';
+  container.appendChild(center);
+
+  // Place nodes around
+  const total = allNodes.length;
+  allNodes.forEach((node, i) => {
+    const angle = (2 * Math.PI * i / total) - Math.PI / 2;
+    const x = cx + rx * Math.cos(angle);
+    const y = cy + ry * Math.sin(angle);
+
+    const el = document.createElement('div');
+    el.className = `mindmap-node ${node.cls}`;
+    el.textContent = node.text;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.style.transform = 'translate(-50%, -50%)';
+    container.appendChild(el);
+
+    // Line
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', cx);
+    line.setAttribute('y1', cy);
+    line.setAttribute('x2', x);
+    line.setAttribute('y2', y);
+    line.setAttribute('stroke', 'var(--border)');
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-dasharray', '4 4');
+    svg.appendChild(line);
+  });
+}
+
+function renderRadarChart(canvasId) {
+  const traits = scoreTraits(DATA.personality_traits || []);
+  if (traits.length < 3) return;
+
+  try {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx || typeof Chart === 'undefined') return;
+
+    new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: traits.map(t => t.label),
+        datasets: [{
+          label: DATA.subject_name,
+          data: traits.map(t => t.score),
+          backgroundColor: 'rgba(88, 166, 255, 0.15)',
+          borderColor: 'rgba(88, 166, 255, 0.8)',
+          pointBackgroundColor: 'rgba(88, 166, 255, 1)',
+          pointBorderColor: '#fff',
+          pointHoverRadius: 6,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 5,
+            ticks: {
+              stepSize: 1,
+              display: false
+            },
+            grid: {
+              color: 'rgba(139,148,158,0.15)'
+            },
+            angleLines: {
+              color: 'rgba(139,148,158,0.15)'
+            },
+            pointLabels: {
+              color: getComputedStyle(document.documentElement).getPropertyValue('--text-dim').trim() || '#8b949e',
+              font: { size: 11, weight: '500' }
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  } catch(e) { console.log('Chart.js not available:', e); }
+}
+
+function render() {
+  const app = document.getElementById('app');
+  const d = DATA;
+  const vis = getVisibilityLabel(d.social_presence);
+  const platforms = parseSocialPresence(d.social_presence);
+  const tagColors = ['tag-purple', 'tag-green', 'tag-blue', 'tag-orange', 'tag-red'];
+
+  let html = '';
+
+  // Hero
+  html += `
+    <div class="hero">
+      <div class="hero-avatar">${esc(getInitials(d.subject_name || 'XX'))}</div>
+      <h1>${esc(d.subject_name || 'Unknown')}</h1>
+      <div class="subtitle">${esc(d.professional_summary || '')}</div>
+      <div class="meta">Generated ${d.generated_at ? new Date(d.generated_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}) : 'recently'} by IceBreaker</div>
+    </div>
+  `;
+
+  // Mind Map
+  html += `
+    <div class="mindmap-section">
+      <h2>Profile Mind Map</h2>
+      <div class="mindmap" id="mindmapContainer"></div>
+    </div>
+  `;
+
+  // Two Column: Social Presence + Radar Chart
+  html += `<div class="two-col">`;
+
+  // Social Presence
+  html += `
+    <div class="section open" id="sec-social">
+      <div class="section-header" onclick="toggleSection('sec-social')">
+        <div class="section-icon">&#127760;</div>
+        <h2>Social Presence</h2>
+        <span class="visibility-badge ${getVisibilityClass(vis)}">${esc(vis)}</span>
+        <span class="section-chevron">&#9660;</span>
+      </div>
+      <div class="section-content"><div class="section-body">
+        <div class="social-grid">
+  `;
+  if (platforms.length > 0) {
+    platforms.forEach(p => {
+      html += `
+        <div class="social-item">
+          <span class="social-icon">${p.icon}</span>
+          <div class="social-info">
+            <div class="social-name">${esc(p.name)}</div>
+            <div class="social-detail">${esc(p.detail)}</div>
+          </div>
+        </div>
+      `;
+    });
+  } else {
+    html += `<div class="social-item"><span class="social-icon">&#128269;</span><div class="social-info"><div class="social-detail">Limited public social media presence detected</div></div></div>`;
+  }
+  html += `</div></div></div></div>`;
+
+  // Radar Chart
+  html += `
+    <div class="section open" id="sec-radar">
+      <div class="section-header" onclick="toggleSection('sec-radar')">
+        <div class="section-icon">&#128200;</div>
+        <h2>Personality Traits</h2>
+        <span class="section-chevron">&#9660;</span>
+      </div>
+      <div class="section-content"><div class="section-body">
+        <div class="radar-container">
+          <canvas id="radarChart"></canvas>
+        </div>
+        <div class="tags" style="margin-top:1rem;">
+          ${(d.personality_traits || []).map((t, i) => `<span class="tag ${tagColors[i % tagColors.length]}">${esc(t.split(/[-—:]/)[0].trim())}</span>`).join('')}
+        </div>
+      </div></div>
+    </div>
+  `;
+
+  html += `</div>`; // end two-col
+
+  // Communication Style
+  html += `
+    <div class="section open" id="sec-comm">
+      <div class="section-header" onclick="toggleSection('sec-comm')">
+        <div class="section-icon">&#128172;</div>
+        <h2>Communication Style</h2>
+        <span class="section-chevron">&#9660;</span>
+      </div>
+      <div class="section-content"><div class="section-body">
+        <div class="quote-block">${esc(d.communication_style || 'No communication style data available.')}</div>
+      </div></div>
+    </div>
+  `;
+
+  // Conversation Starters
+  html += `
+    <div class="section open" id="sec-convo">
+      <div class="section-header" onclick="toggleSection('sec-convo')">
+        <div class="section-icon">&#128161;</div>
+        <h2>Conversation Starters</h2>
+        <span class="section-chevron">&#9660;</span>
+      </div>
+      <div class="section-content"><div class="section-body">
+        <div class="cards-grid">
+          ${(d.conversation_starters || []).map((s, i) => `
+            <div class="card">
+              <div class="card-number">${i + 1}</div>
+              <p>${esc(s)}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div></div>
+    </div>
+  `;
+
+  // Two Column: Interests + Values
+  html += `<div class="two-col">`;
+
+  // Personal Interests
+  html += `
+    <div class="section open" id="sec-interests">
+      <div class="section-header" onclick="toggleSection('sec-interests')">
+        <div class="section-icon">&#127775;</div>
+        <h2>Personal Interests</h2>
+        <span class="section-chevron">&#9660;</span>
+      </div>
+      <div class="section-content"><div class="section-body">
+        <div class="tags">
+          ${(d.personal_interests || []).map((t, i) => `<span class="tag ${tagColors[(i + 1) % tagColors.length]}">${esc(t)}</span>`).join('')}
+        </div>
+      </div></div>
+    </div>
+  `;
+
+  // Values & Causes
+  html += `
+    <div class="section open" id="sec-values">
+      <div class="section-header" onclick="toggleSection('sec-values')">
+        <div class="section-icon">&#128150;</div>
+        <h2>Values & Causes</h2>
+        <span class="section-chevron">&#9660;</span>
+      </div>
+      <div class="section-content"><div class="section-body">
+        <div class="tags">
+          ${(d.values_and_causes || []).map((t, i) => `<span class="tag ${tagColors[(i + 3) % tagColors.length]}">${esc(t)}</span>`).join('')}
+        </div>
+      </div></div>
+    </div>
+  `;
+
+  html += `</div>`; // end two-col
+
+  // Content They Share
+  html += `
+    <div class="section" id="sec-content">
+      <div class="section-header" onclick="toggleSection('sec-content')">
+        <div class="section-icon">&#128240;</div>
+        <h2>Content They Share</h2>
+        <span class="section-chevron">&#9660;</span>
+      </div>
+      <div class="section-content"><div class="section-body">
+        <div class="tags">
+          ${(d.content_they_share || []).map((t, i) => `<span class="tag ${tagColors[i % tagColors.length]}">${esc(t)}</span>`).join('')}
+        </div>
+      </div></div>
+    </div>
+  `;
+
+  // Recent Activity Timeline
+  if ((d.recent_activity || []).length > 0) {
+    html += `
+      <div class="section open" id="sec-activity">
+        <div class="section-header" onclick="toggleSection('sec-activity')">
+          <div class="section-icon">&#128197;</div>
+          <h2>Recent Activity</h2>
+          <span class="section-chevron">&#9660;</span>
+        </div>
+        <div class="section-content"><div class="section-body">
+          <div class="timeline">
+            ${d.recent_activity.map(a => `<div class="timeline-item"><div class="timeline-text">${esc(a)}</div></div>`).join('')}
+          </div>
+        </div></div>
+      </div>
+    `;
+  }
+
+  // Key Topics
+  html += `
+    <div class="section" id="sec-topics">
+      <div class="section-header" onclick="toggleSection('sec-topics')">
+        <div class="section-icon">&#128218;</div>
+        <h2>Key Topics</h2>
+        <span class="section-chevron">&#9660;</span>
+      </div>
+      <div class="section-content"><div class="section-body">
+        <div class="tags">
+          ${(d.key_topics || []).map((t, i) => `<span class="tag ${tagColors[i % tagColors.length]}">${esc(t)}</span>`).join('')}
+        </div>
+      </div></div>
+    </div>
+  `;
+
+  // Warnings
+  if ((d.warnings || []).length > 0) {
+    html += `
+      <div class="section" id="sec-warnings">
+        <div class="section-header" onclick="toggleSection('sec-warnings')">
+          <div class="section-icon">&#9888;</div>
+          <h2>Notes & Caveats</h2>
+          <span class="section-chevron">&#9660;</span>
+        </div>
+        <div class="section-content"><div class="section-body">
+          ${d.warnings.map(w => `<div class="warning-item"><span class="warning-icon">&#9888;</span><span>${esc(w)}</span></div>`).join('')}
+        </div></div>
+      </div>
+    `;
+  }
+
+  // Footer
+  html += `
+    <div class="footer">
+      <div>Generated by <strong>IceBreaker</strong> from publicly available information</div>
+      <div class="sources">Sources: ${(d.sources_used || []).map(s => esc(s)).join(', ')}</div>
+    </div>
+  `;
+
+  app.innerHTML = html;
+
+  // Render mind map after DOM is ready
+  setTimeout(() => {
+    const mm = document.getElementById('mindmapContainer');
+    if (mm) renderMindMap(mm);
+    renderRadarChart('radarChart');
+  }, 100);
+}
+
+render();
+</script>
+</body>
+</html>
