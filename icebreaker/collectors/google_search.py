@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 
+import httpx
+
 from ..config import Config
 from ..models import CollectorResult, ResolvedIdentity, SearchResult
 from . import register
@@ -37,55 +39,64 @@ class GoogleSearchCollector(AbstractCollector):
     async def _search_serpapi(self, identity: ResolvedIdentity) -> CollectorResult:
         all_results: list[SearchResult] = []
 
-        for query in identity.search_queries:
-            resp = await self.client.get(
-                "https://serpapi.com/search",
-                params={
-                    "q": query,
-                    "api_key": self.config.serpapi_key,
-                    "engine": "google",
-                    "num": self.config.max_search_results,
-                    "gl": "us",
-                    "hl": "en",
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-
-            for item in data.get("organic_results", []):
-                all_results.append(
-                    SearchResult(
-                        title=item.get("title", ""),
-                        url=item.get("link", ""),
-                        snippet=item.get("snippet", ""),
-                        source="google_serpapi",
-                        date=item.get("date"),
-                    )
+        try:
+            for query in identity.search_queries:
+                resp = await self.client.get(
+                    "https://serpapi.com/search",
+                    params={
+                        "q": query,
+                        "api_key": self.config.serpapi_key,
+                        "engine": "google",
+                        "num": self.config.max_search_results,
+                        "gl": "us",
+                        "hl": "en",
+                    },
                 )
+                resp.raise_for_status()
+                data = resp.json()
 
-            # Also grab knowledge graph if present
-            kg = data.get("knowledge_graph", {})
-            if kg:
-                all_results.append(
-                    SearchResult(
-                        title=kg.get("title", ""),
-                        url=kg.get("website", ""),
-                        snippet=kg.get("description", ""),
-                        content=str(kg),
-                        source="google_knowledge_graph",
+                for item in data.get("organic_results", []):
+                    all_results.append(
+                        SearchResult(
+                            title=item.get("title", ""),
+                            url=item.get("link", ""),
+                            snippet=item.get("snippet", ""),
+                            source="google_serpapi",
+                            date=item.get("date"),
+                        )
                     )
-                )
 
-            # Social profiles from search
-            for profile in data.get("social_profiles", []):
-                all_results.append(
-                    SearchResult(
-                        title=profile.get("name", ""),
-                        url=profile.get("link", ""),
-                        snippet=f"Social profile: {profile.get('name', '')}",
-                        source="google_social_profile",
+                # Also grab knowledge graph if present
+                kg = data.get("knowledge_graph", {})
+                if kg:
+                    all_results.append(
+                        SearchResult(
+                            title=kg.get("title", ""),
+                            url=kg.get("website", ""),
+                            snippet=kg.get("description", ""),
+                            content=str(kg),
+                            source="google_knowledge_graph",
+                        )
                     )
+
+                # Social profiles from search
+                for profile in data.get("social_profiles", []):
+                    all_results.append(
+                        SearchResult(
+                            title=profile.get("name", ""),
+                            url=profile.get("link", ""),
+                            snippet=f"Social profile: {profile.get('name', '')}",
+                            source="google_social_profile",
+                        )
+                    )
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 401:
+                return CollectorResult(
+                    source=self.name,
+                    success=False,
+                    error="SerpAPI returned 401 Unauthorized. Check or replace ICEBREAKER_SERPAPI_KEY.",
                 )
+            raise
 
         return CollectorResult(source=self.name, success=True, results=all_results)
 

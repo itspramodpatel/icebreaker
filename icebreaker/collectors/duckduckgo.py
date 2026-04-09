@@ -22,6 +22,15 @@ def _sync_search(query: str, max_results: int) -> list[dict]:
         return list(ddgs.text(query, max_results=max_results))
 
 
+def _identity_name(identity) -> str:
+    """Return the best human-readable label for person or company identities."""
+    return (
+        getattr(identity, "full_name", None)
+        or getattr(identity, "company_name", None)
+        or getattr(identity, "raw_input", "")
+    )
+
+
 @register
 class DuckDuckGoCollector(AbstractCollector):
     name = "duckduckgo"
@@ -37,22 +46,39 @@ class DuckDuckGoCollector(AbstractCollector):
             # Start with resolver's queries (already include company/location context)
             queries = list(identity.search_queries)
 
-            name = identity.full_name or identity.raw_input
-            # Add social/professional discovery queries
-            extra = [
-                f"{name} linkedin profile",
-                f"{name} linkedin posts",
-                f"{name} twitter OR x.com posts",
-                f"{name} instagram",
-                f"{name} youtube channel",
-                f"{name} about biography hobbies interests",
-                f"{name} blog OR medium OR substack",
-                f"{name} speaker OR conference OR interview",
-                f"{name} podcast OR webinar",
-                f"{name} quotes OR opinions",
-            ]
+            name = _identity_name(identity)
+            is_company = bool(getattr(identity, "company_name", None))
+
+            if is_company:
+                extra = [
+                    f"{name} leadership",
+                    f"{name} executive team",
+                    f"{name} marketing team",
+                    f"{name} brand campaign",
+                    f"{name} events exhibitions",
+                    f"{name} partnerships",
+                    f"{name} press release",
+                    f"{name} brand director",
+                    f"{name} marketing director",
+                    f"{name} event manager",
+                ]
+            else:
+                # Add social/professional discovery queries
+                extra = [
+                    f"{name} linkedin profile",
+                    f"{name} linkedin posts",
+                    f"{name} twitter OR x.com posts",
+                    f"{name} instagram",
+                    f"{name} youtube channel",
+                    f"{name} about biography hobbies interests",
+                    f"{name} blog OR medium OR substack",
+                    f"{name} speaker OR conference OR interview",
+                    f"{name} podcast OR webinar",
+                    f"{name} quotes OR opinions",
+                ]
+
             # If we have a LinkedIn URL, search for their posts specifically
-            if identity.linkedin_url or identity.usernames:
+            if getattr(identity, "linkedin_url", None) or getattr(identity, "usernames", None):
                 slug = identity.usernames[0] if identity.usernames else ""
                 if slug:
                     extra.append(f"site:linkedin.com {slug} posts")
@@ -63,7 +89,7 @@ class DuckDuckGoCollector(AbstractCollector):
                     queries.append(q)
 
             # If we have an email, also search the full name without quotes
-            if identity.email and identity.full_name:
+            if getattr(identity, "email", None) and getattr(identity, "full_name", None):
                 queries.append(identity.full_name)
 
             # Run searches (in thread pool since library is sync)
