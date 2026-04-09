@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import re
 from urllib.parse import urlparse
 
@@ -54,6 +55,112 @@ def build_seed_urls(website: str | None) -> list[str]:
         "/events",
     ]
     return [f"{base}{path}" for path in paths]
+
+
+ROLE_TERMS = (
+    "cmo",
+    "chief marketing officer",
+    "marketing director",
+    "marketing manager",
+    "brand director",
+    "brand manager",
+    "event director",
+    "event manager",
+    "head of marketing",
+    "head of brand",
+    "vp marketing",
+)
+
+
+def build_follow_up_queries(identity: CompanyResolvedIdentity, profile) -> list[str]:
+    """Generate a second-pass search plan based on missing company evidence."""
+    all_text = " ".join(
+        filter(
+            None,
+            [
+                " ".join(
+                    filter(None, [result.title, result.snippet, result.content[:400]])
+                )
+                for result in profile.all_results()
+            ],
+        )
+    ).lower()
+
+    queries: list[str] = []
+    name = identity.company_name
+    current_year = datetime.utcnow().year
+    domain = _website_domain(identity.website)
+
+    has_people = any(term in all_text for term in ROLE_TERMS)
+    has_events = any(term in all_text for term in ("event", "exhibition", "trade show", "activation", "sponsorship"))
+    has_signals = any(term in all_text for term in ("press", "news", "launch", "campaign", "partnership", "hiring"))
+
+    if not has_people:
+        queries.extend(
+            [
+                f'"{name}" leadership team',
+                f'"{name}" chief marketing officer',
+                f'"{name}" marketing director',
+                f'"{name}" brand director',
+                f'"{name}" event manager',
+                f'site:linkedin.com/in "{name}" head of marketing',
+                f'site:linkedin.com/in "{name}" head of brand',
+            ]
+        )
+        if domain:
+            queries.extend(
+                [
+                    f"site:{domain} leadership",
+                    f"site:{domain} management",
+                    f"site:{domain} team marketing",
+                ]
+            )
+
+    if not has_events:
+        queries.extend(
+            [
+                f'"{name}" {current_year} event',
+                f'"{name}" {current_year} exhibition',
+                f'"{name}" {current_year} activation',
+                f'"{name}" {current_year} sponsorship',
+            ]
+        )
+        if domain:
+            queries.extend(
+                [
+                    f"site:{domain} events",
+                    f"site:{domain} exhibitions",
+                    f"site:{domain} activations",
+                ]
+            )
+
+    if not has_signals:
+        queries.extend(
+            [
+                f'"{name}" {current_year} press release',
+                f'"{name}" {current_year} news',
+                f'"{name}" {current_year} campaign',
+                f'"{name}" {current_year} partnership',
+                f'"{name}" {current_year} hiring marketing',
+            ]
+        )
+        if domain:
+            queries.extend(
+                [
+                    f"site:{domain} news",
+                    f"site:{domain} press",
+                    f"site:{domain} campaigns",
+                    f"site:{domain} partnerships",
+                ]
+            )
+
+    deduped = []
+    seen = set(identity.search_queries)
+    for query in queries:
+        if query not in seen:
+            seen.add(query)
+            deduped.append(query)
+    return deduped
 
 
 def resolve_company(

@@ -3,17 +3,23 @@
 from __future__ import annotations
 
 import asyncio
+from copy import copy
 import logging
 
 import httpx
 
 from .collectors import get_available_collectors
 from .collectors.web_scraper import WebScraperCollector
-from .company_resolver import build_seed_urls
+from .company_resolver import build_follow_up_queries, build_seed_urls
 from .config import Config
 from .models import ProfileData, ResolvedIdentity
 
 logger = logging.getLogger(__name__)
+
+
+async def _run_search_collectors(search_collectors, identity, config, client):
+    tasks = [cls(config, client).collect(identity) for cls in search_collectors]
+    return await asyncio.gather(*tasks, return_exceptions=True)
 
 
 async def run_pipeline(identity: ResolvedIdentity, config: Config) -> ProfileData:
@@ -34,14 +40,33 @@ async def run_pipeline(identity: ResolvedIdentity, config: Config) -> ProfileDat
             f"{[c.name for c in search_collectors]}"
         )
 
-        tasks = [cls(config, client).collect(identity) for cls in search_collectors]
-        search_results = await asyncio.gather(*tasks, return_exceptions=True)
+        search_results = await _run_search_collectors(
+            search_collectors, identity, config, client
+        )
 
         for result in search_results:
             if isinstance(result, Exception):
                 logger.error(f"Collector failed: {result}")
             else:
                 profile.collector_results.append(result)
+
+        if getattr(identity, "company_name", None):
+            follow_up_queries = build_follow_up_queries(identity, profile)
+            if follow_up_queries:
+                logger.info(
+                    "Running second-pass company research with %s targeted queries",
+                    len(follow_up_queries),
+                )
+                follow_up_identity = copy(identity)
+                follow_up_identity.search_queries = follow_up_queries
+                follow_up_results = await _run_search_collectors(
+                    search_collectors, follow_up_identity, config, client
+                )
+                for result in follow_up_results:
+                    if isinstance(result, Exception):
+                        logger.error(f"Follow-up collector failed: {result}")
+                    else:
+                        profile.collector_results.append(result)
 
         # Phase 2: Scrape URLs discovered by search collectors
         urls = []
