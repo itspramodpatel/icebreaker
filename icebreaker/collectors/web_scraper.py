@@ -174,7 +174,19 @@ class WebScraperCollector(AbstractCollector):
                 text = _extract_text(html)
                 meta = _extract_meta(html)
 
-                if len(text) < 50:
+                meta_text = " ".join(
+                    filter(
+                        None,
+                        [
+                            meta.get("title", ""),
+                            meta.get("description", ""),
+                            meta.get("og:title", ""),
+                            meta.get("og:description", ""),
+                        ],
+                    )
+                ).strip()
+
+                if len(text) < 50 and len(meta_text) < 40:
                     continue
 
                 results.append(

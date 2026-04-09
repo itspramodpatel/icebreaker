@@ -31,6 +31,31 @@ def _website_domain(website: str | None) -> str | None:
     return domain or None
 
 
+def build_seed_urls(website: str | None) -> list[str]:
+    """Create likely high-value company pages from a provided website."""
+    website = _normalize_url(website)
+    if not website:
+        return []
+
+    base = website.rstrip("/")
+    paths = [
+        "",
+        "/about",
+        "/about-us",
+        "/company",
+        "/leadership",
+        "/team",
+        "/management",
+        "/news",
+        "/press",
+        "/media",
+        "/brands",
+        "/careers",
+        "/events",
+    ]
+    return [f"{base}{path}" for path in paths]
+
+
 def resolve_company(
     company_name: str,
     website: str | None = None,

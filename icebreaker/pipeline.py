@@ -9,6 +9,7 @@ import httpx
 
 from .collectors import get_available_collectors
 from .collectors.web_scraper import WebScraperCollector
+from .company_resolver import build_seed_urls
 from .config import Config
 from .models import ProfileData, ResolvedIdentity
 
@@ -51,6 +52,8 @@ async def run_pipeline(identity: ResolvedIdentity, config: Config) -> ProfileDat
             getattr(identity, "linkedin_company_url", None),
             getattr(identity, "website", None),
         ]
+        for seed_url in build_seed_urls(getattr(identity, "website", None)):
+            direct_urls.append(seed_url)
         twitter_handle = getattr(identity, "twitter_handle", None)
         if twitter_handle:
             direct_urls.append(f"https://x.com/{twitter_handle}")
