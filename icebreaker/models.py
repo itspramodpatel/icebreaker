@@ -121,7 +121,9 @@ class CompanyBrief:
     events_calendar: list[str] = field(default_factory=list)
     relevant_people: list[str] = field(default_factory=list)
     public_contacts: list[str] = field(default_factory=list)
+    public_profile_links: list[str] = field(default_factory=list)
     target_roles: list[str] = field(default_factory=list)
+    suggested_outreach_path: list[str] = field(default_factory=list)
     outreach_angles: list[str] = field(default_factory=list)
     email_draft: str = ""
     linkedin_message: str = ""

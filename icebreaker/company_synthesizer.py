@@ -34,6 +34,7 @@ Rules:
 - if named people are found, include only people clearly tied to the company and relevant to marketing, brand, events, partnerships, growth, or senior leadership
 - for each named person, include their title, why they matter, and the source domain when possible
 - include public company phone numbers or publicly listed work contacts only when clearly found in evidence
+- include public profile links when clearly found in evidence
 - prefer concise, commercially useful output over generic company summaries
 
 Output JSON with this structure:
@@ -49,7 +50,9 @@ Output JSON with this structure:
   "events_calendar": ["event or exhibition item with date confidence note", "..."],
   "relevant_people": ["Name - title - why relevant - source", "..."],
   "public_contacts": ["public company phone or work contact - source", "..."],
+  "public_profile_links": ["public LinkedIn/company/team/profile URL - why useful", "..."],
   "target_roles": ["role and why it matters", "..."],
+  "suggested_outreach_path": ["who to approach first and how", "..."],
   "outreach_angles": ["specific angle tied to evidence", "..."],
   "email_draft": "short personalized first-touch email",
   "linkedin_message": "short LinkedIn outreach note",
@@ -83,6 +86,10 @@ Candidate public contacts from evidence:
 
 {public_contacts}
 
+Candidate public profile links:
+
+{public_profile_links}
+
 Analyze the evidence and produce a commercially useful research brief that helps \
 prioritize outreach, shape messaging, and prepare sales follow-up."""
 
@@ -105,6 +112,7 @@ ROLE_KEYWORDS = [
 
 NAME_RE = re.compile(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\b")
 PHONE_RE = re.compile(r"(\+?\d[\d\s().-]{7,}\d)")
+PROFILE_URL_HINTS = ("linkedin.com", "theorg.com", "rocketreach.co")
 
 
 def _format_raw_data(profile: ProfileData) -> str:
@@ -181,6 +189,28 @@ def _extract_public_contacts(profile: ProfileData) -> list[str]:
     return contacts
 
 
+def _extract_public_profile_links(profile: ProfileData) -> list[str]:
+    links: list[str] = []
+    seen: set[str] = set()
+
+    for sr in profile.all_results():
+        url = (sr.url or "").strip()
+        if not url:
+            continue
+        if not any(hint in url for hint in PROFILE_URL_HINTS):
+            continue
+
+        title = (sr.title or sr.snippet or "").strip()
+        evidence = f"{title} | {url}"
+        if evidence not in seen:
+            seen.add(evidence)
+            links.append(evidence)
+        if len(links) >= 12:
+            return links
+
+    return links
+
+
 async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBrief:
     if not config.has_anthropic():
         raise ValueError(
@@ -193,6 +223,7 @@ async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBri
         profile, getattr(identity, "company_name", identity.raw_input)
     )
     public_contacts = _extract_public_contacts(profile)
+    public_profile_links = _extract_public_profile_links(profile)
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
         company_name=getattr(identity, "company_name", identity.raw_input),
@@ -205,6 +236,7 @@ async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBri
         raw_data=raw_data,
         candidate_people="\n".join(f"- {item}" for item in candidate_people) or "(none found)",
         public_contacts="\n".join(f"- {item}" for item in public_contacts) or "(none found)",
+        public_profile_links="\n".join(f"- {item}" for item in public_profile_links) or "(none found)",
     )
 
     logger.info("Sending %s chars to Claude for company synthesis", len(raw_data))
@@ -248,7 +280,9 @@ async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBri
         events_calendar=data.get("events_calendar", []),
         relevant_people=data.get("relevant_people", []),
         public_contacts=data.get("public_contacts", []),
+        public_profile_links=data.get("public_profile_links", []),
         target_roles=data.get("target_roles", []),
+        suggested_outreach_path=data.get("suggested_outreach_path", []),
         outreach_angles=data.get("outreach_angles", []),
         email_draft=data.get("email_draft", ""),
         linkedin_message=data.get("linkedin_message", ""),

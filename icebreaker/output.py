@@ -354,9 +354,21 @@ def company_brief_to_markdown(brief: CompanyBrief) -> str:
             lines.append(f"- {item}")
         lines.append("")
 
+    if brief.public_profile_links:
+        lines.append("## Public Profile Links")
+        for item in brief.public_profile_links:
+            lines.append(f"- {item}")
+        lines.append("")
+
     if brief.target_roles:
         lines.append("## Target Roles")
         for item in brief.target_roles:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.suggested_outreach_path:
+        lines.append("## Suggested Outreach Path")
+        for item in brief.suggested_outreach_path:
             lines.append(f"- {item}")
         lines.append("")
 
