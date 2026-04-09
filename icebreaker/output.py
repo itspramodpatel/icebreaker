@@ -273,6 +273,12 @@ def company_brief_to_markdown(brief: CompanyBrief) -> str:
             lines.append(f"- {item}")
         lines.append("")
 
+    if brief.relevant_people:
+        lines.append("## Relevant People")
+        for item in brief.relevant_people:
+            lines.append(f"- {item}")
+        lines.append("")
+
     if brief.target_roles:
         lines.append("## Target Roles")
         for item in brief.target_roles:

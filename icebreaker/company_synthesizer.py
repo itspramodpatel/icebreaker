@@ -30,6 +30,8 @@ Rules:
 - if event dates or calendars are uncertain, say so explicitly
 - do not invent direct contact details
 - target roles may be inferred even when named individuals are not found
+- if named people are found, include only people clearly tied to the company and relevant to marketing, brand, events, partnerships, growth, or senior leadership
+- for each named person, include their title, why they matter, and the source domain when possible
 - prefer concise, commercially useful output over generic company summaries
 
 Output JSON with this structure:
@@ -40,6 +42,7 @@ Output JSON with this structure:
   "current_priorities": ["priority with evidence", "..."],
   "opportunity_signals": ["signal with why it matters", "..."],
   "events_calendar": ["event or exhibition item with date confidence note", "..."],
+  "relevant_people": ["Name - title - why relevant - source", "..."],
   "target_roles": ["role and why it matters", "..."],
   "outreach_angles": ["specific angle tied to evidence", "..."],
   "email_draft": "short personalized first-touch email",
@@ -151,6 +154,7 @@ async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBri
         current_priorities=data.get("current_priorities", []),
         opportunity_signals=data.get("opportunity_signals", []),
         events_calendar=data.get("events_calendar", []),
+        relevant_people=data.get("relevant_people", []),
         target_roles=data.get("target_roles", []),
         outreach_angles=data.get("outreach_angles", []),
         email_draft=data.get("email_draft", ""),

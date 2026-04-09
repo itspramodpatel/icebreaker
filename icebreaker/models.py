@@ -116,6 +116,7 @@ class CompanyBrief:
     current_priorities: list[str] = field(default_factory=list)
     opportunity_signals: list[str] = field(default_factory=list)
     events_calendar: list[str] = field(default_factory=list)
+    relevant_people: list[str] = field(default_factory=list)
     target_roles: list[str] = field(default_factory=list)
     outreach_angles: list[str] = field(default_factory=list)
     email_draft: str = ""

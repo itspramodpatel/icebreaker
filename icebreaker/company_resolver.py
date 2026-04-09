@@ -68,6 +68,9 @@ def _build_company_queries(identity: CompanyResolvedIdentity) -> list[str]:
         f'"{name}" official site',
         f'"{name}" marketing',
         f'"{name}" brand',
+        f'"{name}" leadership',
+        f'"{name}" executive team',
+        f'"{name}" marketing team',
         f'"{name}" campaign',
         f'"{name}" partnership',
         f'"{name}" press release',
@@ -77,6 +80,13 @@ def _build_company_queries(identity: CompanyResolvedIdentity) -> list[str]:
         f'"{name}" experiential',
         f'"{name}" hiring marketing',
         f'site:linkedin.com/company "{name}"',
+        f'site:linkedin.com/in "{name}" CMO',
+        f'site:linkedin.com/in "{name}" "Chief Marketing Officer"',
+        f'site:linkedin.com/in "{name}" "Marketing Director"',
+        f'site:linkedin.com/in "{name}" "Brand Director"',
+        f'site:linkedin.com/in "{name}" "Brand Manager"',
+        f'site:linkedin.com/in "{name}" "Event Director"',
+        f'site:linkedin.com/in "{name}" "Event Manager"',
     ]
 
     if identity.geography:
@@ -127,6 +137,8 @@ def _build_company_queries(identity: CompanyResolvedIdentity) -> list[str]:
                 f"site:{domain} press",
                 f"site:{domain} leadership",
                 f"site:{domain} marketing",
+                f"site:{domain} team",
+                f"site:{domain} about",
             ]
         )
 
