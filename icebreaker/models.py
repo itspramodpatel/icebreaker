@@ -113,10 +113,14 @@ class CompanyBrief:
     company_name: str
     website: str = ""
     summary: str = ""
+    confirmed_company_facts: list[str] = field(default_factory=list)
+    brands_or_business_units: list[str] = field(default_factory=list)
     current_priorities: list[str] = field(default_factory=list)
+    recent_signals: list[str] = field(default_factory=list)
     opportunity_signals: list[str] = field(default_factory=list)
     events_calendar: list[str] = field(default_factory=list)
     relevant_people: list[str] = field(default_factory=list)
+    public_contacts: list[str] = field(default_factory=list)
     target_roles: list[str] = field(default_factory=list)
     outreach_angles: list[str] = field(default_factory=list)
     email_draft: str = ""

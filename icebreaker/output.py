@@ -255,9 +255,27 @@ def company_brief_to_markdown(brief: CompanyBrief) -> str:
     if brief.summary:
         lines.extend(["## Company Summary", brief.summary, ""])
 
+    if brief.confirmed_company_facts:
+        lines.append("## Confirmed Company Facts")
+        for item in brief.confirmed_company_facts:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.brands_or_business_units:
+        lines.append("## Brands / Business Units")
+        for item in brief.brands_or_business_units:
+            lines.append(f"- {item}")
+        lines.append("")
+
     if brief.current_priorities:
         lines.append("## Current Priorities")
         for item in brief.current_priorities:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.recent_signals:
+        lines.append("## Recent Signals")
+        for item in brief.recent_signals:
             lines.append(f"- {item}")
         lines.append("")
 
@@ -276,6 +294,12 @@ def company_brief_to_markdown(brief: CompanyBrief) -> str:
     if brief.relevant_people:
         lines.append("## Relevant People")
         for item in brief.relevant_people:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.public_contacts:
+        lines.append("## Public Contacts")
+        for item in brief.public_contacts:
             lines.append(f"- {item}")
         lines.append("")
 

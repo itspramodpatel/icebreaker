@@ -44,6 +44,8 @@ def build_seed_urls(website: str | None) -> list[str]:
         "/about",
         "/about-us",
         "/company",
+        "/contact",
+        "/contact-us",
         "/leadership",
         "/team",
         "/management",

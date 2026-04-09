@@ -20,7 +20,7 @@ business development.
 
 Your goal:
 - understand the company
-- infer likely current priorities from public evidence
+- extract confirmed facts and recent commercial signals from public evidence
 - identify event, exhibition, activation, partnership, and campaign signals
 - map likely buyer roles
 - generate practical outreach angles and first-touch messaging
@@ -29,10 +29,11 @@ Rules:
 - use only evidence grounded in the provided public data
 - separate confirmed facts from likely inferences
 - if event dates or calendars are uncertain, say so explicitly
-- do not invent direct contact details
+- do not invent direct contact details or personal phone numbers
 - target roles may be inferred even when named individuals are not found
 - if named people are found, include only people clearly tied to the company and relevant to marketing, brand, events, partnerships, growth, or senior leadership
 - for each named person, include their title, why they matter, and the source domain when possible
+- include public company phone numbers or publicly listed work contacts only when clearly found in evidence
 - prefer concise, commercially useful output over generic company summaries
 
 Output JSON with this structure:
@@ -40,10 +41,14 @@ Output JSON with this structure:
   "company_name": "Company Name",
   "website": "https://example.com",
   "summary": "2-3 sentence commercial summary",
+  "confirmed_company_facts": ["fact grounded in source evidence", "..."],
+  "brands_or_business_units": ["brand or business unit", "..."],
   "current_priorities": ["priority with evidence", "..."],
+  "recent_signals": ["recent commercial move with evidence", "..."],
   "opportunity_signals": ["signal with why it matters", "..."],
   "events_calendar": ["event or exhibition item with date confidence note", "..."],
   "relevant_people": ["Name - title - why relevant - source", "..."],
+  "public_contacts": ["public company phone or work contact - source", "..."],
   "target_roles": ["role and why it matters", "..."],
   "outreach_angles": ["specific angle tied to evidence", "..."],
   "email_draft": "short personalized first-touch email",
@@ -74,6 +79,10 @@ Candidate people hints from titles/snippets:
 
 {candidate_people}
 
+Candidate public contacts from evidence:
+
+{public_contacts}
+
 Analyze the evidence and produce a commercially useful research brief that helps \
 prioritize outreach, shape messaging, and prepare sales follow-up."""
 
@@ -95,6 +104,7 @@ ROLE_KEYWORDS = [
 ]
 
 NAME_RE = re.compile(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\b")
+PHONE_RE = re.compile(r"(\+?\d[\d\s().-]{7,}\d)")
 
 
 def _format_raw_data(profile: ProfileData) -> str:
@@ -151,6 +161,26 @@ def _extract_candidate_people(profile: ProfileData, company_name: str) -> list[s
     return candidates
 
 
+def _extract_public_contacts(profile: ProfileData) -> list[str]:
+    contacts: list[str] = []
+    seen: set[str] = set()
+
+    for sr in profile.all_results():
+        text = " ".join(filter(None, [sr.title, sr.snippet, sr.content[:1200]]))
+        for match in PHONE_RE.finditer(text):
+            phone = " ".join(match.group(1).split())
+            if len(phone) < 8:
+                continue
+            evidence = f"{phone} | {sr.url}"
+            if evidence not in seen:
+                seen.add(evidence)
+                contacts.append(evidence)
+            if len(contacts) >= 10:
+                return contacts
+
+    return contacts
+
+
 async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBrief:
     if not config.has_anthropic():
         raise ValueError(
@@ -162,6 +192,7 @@ async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBri
     candidate_people = _extract_candidate_people(
         profile, getattr(identity, "company_name", identity.raw_input)
     )
+    public_contacts = _extract_public_contacts(profile)
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
         company_name=getattr(identity, "company_name", identity.raw_input),
@@ -173,6 +204,7 @@ async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBri
         services=getattr(identity, "services", "") or "(not provided)",
         raw_data=raw_data,
         candidate_people="\n".join(f"- {item}" for item in candidate_people) or "(none found)",
+        public_contacts="\n".join(f"- {item}" for item in public_contacts) or "(none found)",
     )
 
     logger.info("Sending %s chars to Claude for company synthesis", len(raw_data))
@@ -208,10 +240,14 @@ async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBri
         company_name=data.get("company_name", getattr(identity, "company_name", identity.raw_input)),
         website=data.get("website", getattr(identity, "website", "") or ""),
         summary=data.get("summary", ""),
+        confirmed_company_facts=data.get("confirmed_company_facts", []),
+        brands_or_business_units=data.get("brands_or_business_units", []),
         current_priorities=data.get("current_priorities", []),
+        recent_signals=data.get("recent_signals", []),
         opportunity_signals=data.get("opportunity_signals", []),
         events_calendar=data.get("events_calendar", []),
         relevant_people=data.get("relevant_people", []),
+        public_contacts=data.get("public_contacts", []),
         target_roles=data.get("target_roles", []),
         outreach_angles=data.get("outreach_angles", []),
         email_draft=data.get("email_draft", ""),
