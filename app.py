@@ -185,6 +185,7 @@ with people_tab:
                     st.session_state["generated_name"] = brief.subject_name
                     st.session_state["result_count"] = len(profile.all_results())
                     st.session_state["file_stem"] = file_stem
+                    st.session_state["people_evidence"] = format_profile_evidence(profile)
                 except Exception as exc:
                     st.exception(exc)
 
@@ -217,6 +218,9 @@ with people_tab:
 
         with st.expander("Generated Markdown"):
             st.code(st.session_state["generated_markdown"], language="markdown")
+        if "people_evidence" in st.session_state:
+            with st.expander("Collected Raw Evidence"):
+                st.code(st.session_state["people_evidence"], language="markdown")
 
         template_path = Path(__file__).parent / "icebreaker" / "templates" / "profile.html"
         if not template_path.exists():
