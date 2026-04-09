@@ -242,6 +242,57 @@ def brief_to_html(brief: MeetingBrief) -> str:
     return html
 
 
+def company_brief_to_html(brief: CompanyBrief) -> str:
+    """Convert company brief to a self-contained HTML file using the shared template."""
+    template_path = Path(__file__).parent / "templates" / "profile.html"
+    template_text = template_path.read_text(encoding="utf-8")
+
+    social_presence = {
+        "overall_visibility": "",
+        "audience_size": "",
+        "posting_style": "Company opportunity brief",
+        "platforms": brief.public_contacts or [],
+    }
+
+    recent_activity = list(brief.recent_signals or [])
+    if brief.events_calendar:
+        recent_activity.extend(brief.events_calendar)
+
+    key_topics = list(brief.brands_or_business_units or [])
+    if brief.target_roles:
+        key_topics.extend(brief.target_roles)
+
+    warnings = list(brief.warnings or [])
+    if brief.sources_used:
+        warnings.append("Sources used are listed below for validation and follow-up.")
+
+    data = {
+        "subject_name": brief.company_name,
+        "professional_summary": brief.summary,
+        "social_presence": social_presence,
+        "personality_traits": brief.relevant_people,
+        "communication_style": (
+            "This is a company opportunity brief focused on public facts, buyer roles, "
+            "recent signals, and outreach planning."
+        ),
+        "personal_interests": brief.confirmed_company_facts,
+        "values_and_causes": brief.current_priorities,
+        "content_they_share": brief.opportunity_signals,
+        "conversation_starters": brief.outreach_angles,
+        "recent_activity": recent_activity,
+        "key_topics": key_topics,
+        "warnings": warnings,
+        "sources_used": brief.sources_used,
+        "generated_at": brief.generated_at.isoformat(),
+    }
+
+    json_data = json.dumps(data, indent=2)
+
+    html = template_text.replace("{{BRIEF_DATA}}", json_data)
+    html = html.replace("{{SUBJECT_NAME}}", brief.company_name)
+    return html
+
+
 def company_brief_to_markdown(brief: CompanyBrief) -> str:
     """Convert company brief to Markdown."""
     lines = [

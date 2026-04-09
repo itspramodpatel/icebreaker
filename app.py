@@ -10,7 +10,12 @@ import streamlit.components.v1 as components
 from icebreaker.company_resolver import resolve_company
 from icebreaker.company_synthesizer import synthesize_company
 from icebreaker.config import Config
-from icebreaker.output import brief_to_html, brief_to_markdown, company_brief_to_markdown
+from icebreaker.output import (
+    brief_to_html,
+    brief_to_markdown,
+    company_brief_to_html,
+    company_brief_to_markdown,
+)
 from icebreaker.pipeline import run_pipeline
 from icebreaker.resolver import resolve
 from icebreaker.synthesizer import synthesize
@@ -290,8 +295,10 @@ with company_tab:
                         services=services.strip(),
                     )
                     markdown = company_brief_to_markdown(brief)
+                    html = company_brief_to_html(brief)
                     file_stem = brief.company_name.replace(" ", "_").lower()
 
+                    st.session_state["company_html"] = html
                     st.session_state["company_markdown"] = markdown
                     st.session_state["company_name_generated"] = brief.company_name
                     st.session_state["company_result_count"] = len(profile.all_results())
@@ -305,13 +312,25 @@ with company_tab:
             f"Generated company brief for {st.session_state['company_name_generated']} from "
             f"{st.session_state['company_result_count']} collected public data points."
         )
-        st.download_button(
-            "Download Company Markdown",
-            data=st.session_state["company_markdown"],
-            file_name=f"{st.session_state['company_file_stem']}_opportunity_brief.md",
-            mime="text/markdown",
-            use_container_width=True,
-        )
+        company_action_col1, company_action_col2 = st.columns([1, 1])
+        with company_action_col1:
+            st.download_button(
+                "Download Company HTML",
+                data=st.session_state["company_html"],
+                file_name=f"{st.session_state['company_file_stem']}_opportunity_brief.html",
+                mime="text/html",
+                use_container_width=True,
+            )
+        with company_action_col2:
+            st.download_button(
+                "Download Company Markdown",
+                data=st.session_state["company_markdown"],
+                file_name=f"{st.session_state['company_file_stem']}_opportunity_brief.md",
+                mime="text/markdown",
+                use_container_width=True,
+            )
+        with st.expander("Preview Company HTML", expanded=True):
+            components.html(st.session_state["company_html"], height=900, scrolling=True)
         with st.expander("Company Brief Markdown", expanded=True):
             st.code(st.session_state["company_markdown"], language="markdown")
         if "company_evidence" in st.session_state:
