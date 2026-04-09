@@ -9,6 +9,7 @@ class Config(BaseSettings):
 
     # Google Search - SerpAPI
     serpapi_key: str = ""
+    searchapi_key: str = ""
 
     # Google Custom Search Engine (alternative to SerpAPI)
     google_cse_key: str = ""
@@ -34,6 +35,9 @@ class Config(BaseSettings):
 
     def has_serpapi(self) -> bool:
         return bool(self.serpapi_key)
+
+    def has_searchapi(self) -> bool:
+        return bool(self.searchapi_key)
 
     def has_google_cse(self) -> bool:
         return bool(self.google_cse_key and self.google_cse_id)

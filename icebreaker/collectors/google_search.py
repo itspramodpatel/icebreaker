@@ -1,4 +1,4 @@
-"""Google Search collector - uses SerpAPI or Google Custom Search Engine."""
+"""Google Search collector - uses SerpAPI, SearchAPI, or Google CSE."""
 
 from __future__ import annotations
 
@@ -20,12 +20,14 @@ class GoogleSearchCollector(AbstractCollector):
 
     @classmethod
     def check_available(cls, config: Config) -> bool:
-        return config.has_serpapi() or config.has_google_cse()
+        return config.has_serpapi() or config.has_searchapi() or config.has_google_cse()
 
     async def collect(self, identity: ResolvedIdentity) -> CollectorResult:
         try:
             if self.config.has_serpapi():
                 return await self._search_serpapi(identity)
+            elif self.config.has_searchapi():
+                return await self._search_searchapi(identity)
             elif self.config.has_google_cse():
                 return await self._search_google_cse(identity)
             else:
@@ -95,6 +97,59 @@ class GoogleSearchCollector(AbstractCollector):
                     source=self.name,
                     success=False,
                     error="SerpAPI returned 401 Unauthorized. Check or replace ICEBREAKER_SERPAPI_KEY.",
+                )
+            raise
+
+        return CollectorResult(source=self.name, success=True, results=all_results)
+
+    async def _search_searchapi(self, identity: ResolvedIdentity) -> CollectorResult:
+        all_results: list[SearchResult] = []
+
+        try:
+            for query in identity.search_queries:
+                resp = await self.client.get(
+                    "https://www.searchapi.io/api/v1/search",
+                    params={
+                        "engine": "google",
+                        "q": query,
+                        "api_key": self.config.searchapi_key,
+                        "gl": "us",
+                        "hl": "en",
+                        "page": 1,
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+
+                for item in data.get("organic_results", []):
+                    all_results.append(
+                        SearchResult(
+                            title=item.get("title", ""),
+                            url=item.get("link", ""),
+                            snippet=item.get("snippet", ""),
+                            source="google_searchapi",
+                            date=item.get("date"),
+                        )
+                    )
+
+                knowledge_graph = data.get("knowledge_graph", {})
+                if knowledge_graph:
+                    all_results.append(
+                        SearchResult(
+                            title=knowledge_graph.get("title", ""),
+                            url=knowledge_graph.get("website", ""),
+                            snippet=knowledge_graph.get("description", ""),
+                            content=str(knowledge_graph),
+                            source="google_knowledge_graph",
+                        )
+                    )
+
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 401:
+                return CollectorResult(
+                    source=self.name,
+                    success=False,
+                    error="SearchAPI returned 401 Unauthorized. Check or replace ICEBREAKER_SEARCHAPI_KEY.",
                 )
             raise
 

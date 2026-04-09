@@ -27,6 +27,7 @@ streamlit run app.py
 ## Optional environment variables
 
 - `ICEBREAKER_SERPAPI_KEY`
+- `ICEBREAKER_SEARCHAPI_KEY`
 - `ICEBREAKER_GOOGLE_CSE_KEY`
 - `ICEBREAKER_GOOGLE_CSE_ID`
 
@@ -41,6 +42,6 @@ streamlit run app.py
 ## Notes
 
 - The app asks for a full name and LinkedIn URL, then generates downloadable HTML.
-- Search quality is better when you also configure SerpAPI or Google CSE.
+- Search quality is better when you also configure SerpAPI, SearchAPI, or Google CSE.
 - The generated HTML is self-contained and can be downloaded directly from the app.
 - Streamlit's docs say Community Cloud supports secrets by pasting your `secrets.toml` contents into the deployed app settings.

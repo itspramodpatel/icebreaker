@@ -21,6 +21,7 @@ def bootstrap_streamlit_secrets() -> None:
     secret_keys = [
         "ICEBREAKER_ANTHROPIC_API_KEY",
         "ICEBREAKER_SERPAPI_KEY",
+        "ICEBREAKER_SEARCHAPI_KEY",
         "ICEBREAKER_GOOGLE_CSE_KEY",
         "ICEBREAKER_GOOGLE_CSE_ID",
         "ICEBREAKER_PROXYCURL_KEY",
@@ -105,7 +106,7 @@ st.caption("Client testing app for generating relationship-intelligence profile 
 with st.sidebar:
     st.subheader("Setup")
     st.write("This app needs `ICEBREAKER_ANTHROPIC_API_KEY` configured in the host environment.")
-    st.write("Search quality improves if you also provide SerpAPI or Google CSE keys.")
+    st.write("Search quality improves if you also provide SerpAPI, SearchAPI, or Google CSE keys.")
     if "debug_show_config" not in st.session_state:
         st.session_state["debug_show_config"] = False
     st.session_state["debug_show_config"] = st.checkbox(
@@ -130,6 +131,7 @@ if not config_ok:
 
 if config_ok and st.session_state.get("debug_show_config"):
     serp_key = getattr(config, "serpapi_key", "") or ""
+    searchapi_key = getattr(config, "searchapi_key", "") or ""
     anth_key = getattr(config, "anthropic_api_key", "") or ""
     st.info(
         "\n".join(
@@ -137,6 +139,8 @@ if config_ok and st.session_state.get("debug_show_config"):
                 f"Anthropic key loaded: {'yes' if bool(anth_key) else 'no'}",
                 f"SerpAPI key loaded: {'yes' if bool(serp_key) else 'no'}",
                 f"SerpAPI key length: {len(serp_key)}",
+                f"SearchAPI key loaded: {'yes' if bool(searchapi_key) else 'no'}",
+                f"SearchAPI key length: {len(searchapi_key)}",
                 f"Google CSE configured: {'yes' if config.has_google_cse() else 'no'}",
             ]
         )
