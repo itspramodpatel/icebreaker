@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
 import anthropic
 
@@ -69,8 +70,31 @@ Raw public data:
 
 {raw_data}
 
+Candidate people hints from titles/snippets:
+
+{candidate_people}
+
 Analyze the evidence and produce a commercially useful research brief that helps \
 prioritize outreach, shape messaging, and prepare sales follow-up."""
+
+ROLE_KEYWORDS = [
+    "cmo",
+    "chief marketing officer",
+    "marketing director",
+    "marketing manager",
+    "brand director",
+    "brand manager",
+    "event director",
+    "event manager",
+    "head of marketing",
+    "head of brand",
+    "vp marketing",
+    "vice president marketing",
+    "partnerships",
+    "growth",
+]
+
+NAME_RE = re.compile(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\b")
 
 
 def _format_raw_data(profile: ProfileData) -> str:
@@ -98,6 +122,35 @@ def _format_raw_data(profile: ProfileData) -> str:
     return "\n\n".join(sections) if sections else "(No data collected)"
 
 
+def _extract_candidate_people(profile: ProfileData, company_name: str) -> list[str]:
+    company_words = {word.lower() for word in re.findall(r"[A-Za-z]+", company_name)}
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    for sr in profile.all_results():
+        text = " ".join(filter(None, [sr.title, sr.snippet]))
+        lowered = text.lower()
+        if not any(keyword in lowered for keyword in ROLE_KEYWORDS):
+            continue
+
+        for match in NAME_RE.finditer(text):
+            name = match.group(1).strip()
+            name_words = {word.lower() for word in name.split()}
+            if name_words & company_words:
+                continue
+            if name.lower() in {"middle east", "united arab", "landmark group"}:
+                continue
+
+            evidence = f"{name} | {sr.title or sr.snippet} | {sr.url}"
+            if evidence not in seen:
+                seen.add(evidence)
+                candidates.append(evidence)
+            if len(candidates) >= 12:
+                return candidates
+
+    return candidates
+
+
 async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBrief:
     if not config.has_anthropic():
         raise ValueError(
@@ -106,6 +159,9 @@ async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBri
 
     raw_data = _format_raw_data(profile)
     identity = profile.identity
+    candidate_people = _extract_candidate_people(
+        profile, getattr(identity, "company_name", identity.raw_input)
+    )
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
         company_name=getattr(identity, "company_name", identity.raw_input),
@@ -116,6 +172,7 @@ async def synthesize_company(profile: ProfileData, config: Config) -> CompanyBri
         event_focus=getattr(identity, "event_focus", "") or "(not provided)",
         services=getattr(identity, "services", "") or "(not provided)",
         raw_data=raw_data,
+        candidate_people="\n".join(f"- {item}" for item in candidate_people) or "(none found)",
     )
 
     logger.info("Sending %s chars to Claude for company synthesis", len(raw_data))

@@ -80,6 +80,25 @@ def generate_company_brief(
     return brief, profile
 
 
+def format_profile_evidence(profile) -> str:
+    lines = []
+    for collector in profile.collector_results:
+        status = "success" if collector.success else f"error: {collector.error or 'unknown'}"
+        lines.append(f"## {collector.source} ({status})")
+        for result in collector.results[:30]:
+            if result.title:
+                lines.append(f"Title: {result.title}")
+            if result.url:
+                lines.append(f"URL: {result.url}")
+            if result.snippet:
+                lines.append(f"Snippet: {result.snippet}")
+            if result.content:
+                lines.append(f"Content: {result.content[:800]}")
+            lines.append("---")
+        lines.append("")
+    return "\n".join(lines).strip() or "No evidence collected."
+
+
 st.title("Icebreaker")
 st.caption("Client testing app for generating relationship-intelligence profile HTML from public information.")
 
@@ -248,6 +267,7 @@ with company_tab:
                     st.session_state["company_name_generated"] = brief.company_name
                     st.session_state["company_result_count"] = len(profile.all_results())
                     st.session_state["company_file_stem"] = file_stem
+                    st.session_state["company_evidence"] = format_profile_evidence(profile)
                 except Exception as exc:
                     st.exception(exc)
 
@@ -265,3 +285,6 @@ with company_tab:
         )
         with st.expander("Company Brief Markdown", expanded=True):
             st.code(st.session_state["company_markdown"], language="markdown")
+        if "company_evidence" in st.session_state:
+            with st.expander("Collected Raw Evidence"):
+                st.code(st.session_state["company_evidence"], language="markdown")
