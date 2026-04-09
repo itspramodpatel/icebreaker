@@ -34,6 +34,12 @@ def _name_from_linkedin(slug: str) -> str | None:
     return None
 
 
+def _keywords_from_slug(slug: str) -> list[str]:
+    """Extract useful name-like keywords from a LinkedIn slug."""
+    clean = re.sub(r"-[0-9a-f]{4,}$", "", slug.lower())
+    return [part for part in clean.split("-") if part.isalpha() and len(part) > 1]
+
+
 def resolve(
     raw_input: str,
     name: str | None = None,
@@ -118,6 +124,16 @@ def _build_queries(
         slug = identity.usernames[0] if identity.usernames else ""
         if slug:
             queries.append(f"site:linkedin.com/in/{slug}")
+            queries.append(f'"{slug}" linkedin')
+            keywords = _keywords_from_slug(slug)
+            if keywords:
+                slug_name = " ".join(word.capitalize() for word in keywords)
+                queries.append(f'"{slug_name}" linkedin')
+                queries.append(f'"{slug_name}" profile')
+                if company:
+                    queries.append(f'"{slug_name}" "{company}" linkedin')
+                if location:
+                    queries.append(f'"{slug_name}" {location} linkedin')
 
     # Twitter handle
     if identity.twitter_handle:
@@ -127,4 +143,10 @@ def _build_queries(
     if not queries:
         queries.append(f'"{identity.raw_input}"')
 
-    return queries
+    deduped = []
+    seen = set()
+    for query in queries:
+        if query not in seen:
+            seen.add(query)
+            deduped.append(query)
+    return deduped

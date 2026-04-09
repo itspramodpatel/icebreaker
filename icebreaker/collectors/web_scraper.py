@@ -62,6 +62,22 @@ def _extract_text(html: str, max_length: int = 5000) -> str:
     for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
         tag.decompose()
 
+    title_text = soup.title.get_text(" ", strip=True) if soup.title else ""
+
+    meta_parts = []
+    for key in ("description", "og:description", "twitter:description"):
+        tag = soup.find("meta", attrs={"name": key}) or soup.find(
+            "meta", attrs={"property": key}
+        )
+        if tag and tag.get("content"):
+            meta_parts.append(tag.get("content", "").strip())
+
+    heading_parts = [
+        tag.get_text(" ", strip=True)
+        for tag in soup.find_all(["h1", "h2", "h3"], limit=12)
+        if tag.get_text(strip=True)
+    ]
+
     # Try to find main content areas
     main = soup.find("main") or soup.find("article") or soup.find(id="content")
     if main:
@@ -73,7 +89,17 @@ def _extract_text(html: str, max_length: int = 5000) -> str:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     text = "\n".join(lines)
 
-    return text[:max_length]
+    parts = []
+    if title_text:
+        parts.append(f"Title: {title_text}")
+    if meta_parts:
+        parts.append("Meta: " + " | ".join(dict.fromkeys(meta_parts)))
+    if heading_parts:
+        parts.append("Headings: " + " | ".join(dict.fromkeys(heading_parts)))
+    if text:
+        parts.append(text)
+
+    return "\n".join(parts)[:max_length]
 
 
 def _extract_meta(html: str) -> dict:

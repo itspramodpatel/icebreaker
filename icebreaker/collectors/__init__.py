@@ -22,5 +22,6 @@ def get_available_collectors(config) -> list[type[AbstractCollector]]:
 
 # Import collectors to trigger registration
 from . import duckduckgo  # noqa: E402, F401
+from . import direct_profile  # noqa: E402, F401
 from . import google_search  # noqa: E402, F401
 from . import web_scraper  # noqa: E402, F401

@@ -45,6 +45,15 @@ async def run_pipeline(identity: ResolvedIdentity, config: Config) -> ProfileDat
         # Phase 2: Scrape URLs discovered by search collectors
         urls = []
         seen = set()
+
+        direct_urls = [identity.linkedin_url]
+        if identity.twitter_handle:
+            direct_urls.append(f"https://x.com/{identity.twitter_handle}")
+        for url in direct_urls:
+            if url and url not in seen:
+                urls.append(url)
+                seen.add(url)
+
         for cr in profile.collector_results:
             if cr.success:
                 for sr in cr.results:
