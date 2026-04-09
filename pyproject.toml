@@ -11,6 +11,7 @@ dependencies = [
     "click>=8.1",
     "pydantic-settings>=2.0",
     "lxml>=5.0",
+    "ddgs>=8.0",
 ]
 
 [project.optional-dependencies]
