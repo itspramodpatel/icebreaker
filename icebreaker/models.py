@@ -30,6 +30,22 @@ class ResolvedIdentity:
 
 
 @dataclass
+class CompanyResolvedIdentity:
+    """Normalized company input for opportunity and outreach research."""
+
+    raw_input: str
+    company_name: str
+    website: str | None = None
+    linkedin_company_url: str | None = None
+    geography: str | None = None
+    industry: str | None = None
+    target_roles: list[str] = field(default_factory=list)
+    event_focus: str | None = None
+    services: str | None = None
+    search_queries: list[str] = field(default_factory=list)
+
+
+@dataclass
 class SearchResult:
     """A single search result or scraped item."""
 
@@ -86,5 +102,26 @@ class MeetingBrief:
     values_and_causes: list[str] = field(default_factory=list)
     content_they_share: list[str] = field(default_factory=list)
     communication_style: str = ""
+    raw_json: dict = field(default_factory=dict)
+    generated_at: datetime = field(default_factory=datetime.utcnow)
+
+
+@dataclass
+class CompanyBrief:
+    """Final synthesized company opportunity brief."""
+
+    company_name: str
+    website: str = ""
+    summary: str = ""
+    current_priorities: list[str] = field(default_factory=list)
+    opportunity_signals: list[str] = field(default_factory=list)
+    events_calendar: list[str] = field(default_factory=list)
+    target_roles: list[str] = field(default_factory=list)
+    outreach_angles: list[str] = field(default_factory=list)
+    email_draft: str = ""
+    linkedin_message: str = ""
+    call_talking_points: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    sources_used: list[str] = field(default_factory=list)
     raw_json: dict = field(default_factory=dict)
     generated_at: datetime = field(default_factory=datetime.utcnow)

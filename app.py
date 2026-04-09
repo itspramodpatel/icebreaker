@@ -7,8 +7,10 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
+from icebreaker.company_resolver import resolve_company
+from icebreaker.company_synthesizer import synthesize_company
 from icebreaker.config import Config
-from icebreaker.output import brief_to_html, brief_to_markdown
+from icebreaker.output import brief_to_html, brief_to_markdown, company_brief_to_markdown
 from icebreaker.pipeline import run_pipeline
 from icebreaker.resolver import resolve
 from icebreaker.synthesizer import synthesize
@@ -52,6 +54,32 @@ def generate_profile(name: str, linkedin_url: str, company: str, location: str):
     return brief, profile
 
 
+def generate_company_brief(
+    company_name: str,
+    website: str,
+    linkedin_company_url: str,
+    geography: str,
+    industry: str,
+    target_roles: list[str],
+    event_focus: str,
+    services: str,
+):
+    config = Config()
+    identity = resolve_company(
+        company_name=company_name,
+        website=website or None,
+        linkedin_company_url=linkedin_company_url or None,
+        geography=geography or None,
+        industry=industry or None,
+        target_roles=target_roles,
+        event_focus=event_focus or None,
+        services=services or None,
+    )
+    profile = asyncio.run(run_pipeline(identity, config))
+    brief = asyncio.run(synthesize_company(profile, config))
+    return brief, profile
+
+
 st.title("Icebreaker")
 st.caption("Client testing app for generating relationship-intelligence profile HTML from public information.")
 
@@ -71,82 +99,169 @@ except Exception as exc:
     config_ok = False
     config_error = str(exc)
 
-col1, col2 = st.columns([1, 1])
-with col1:
-    name = st.text_input("Full name", placeholder="Jane Doe")
-with col2:
-    linkedin_url = st.text_input(
-        "LinkedIn profile URL",
-        placeholder="https://www.linkedin.com/in/jane-doe/",
-    )
-
-col3, col4 = st.columns([1, 1])
-with col3:
-    company = st.text_input("Company (optional)", placeholder="Acme Corp")
-with col4:
-    location = st.text_input("Location (optional)", placeholder="San Francisco")
-
-run_clicked = st.button("Generate profile HTML", type="primary", disabled=not config_ok)
-
 if not config_ok:
     st.error(config_error or "Configuration error.")
 
-if run_clicked:
-    if not name.strip():
-        st.warning("Enter the person's full name.")
-    elif not linkedin_url.strip():
-        st.warning("Enter a LinkedIn profile URL.")
-    else:
-        with st.spinner("Gathering public data and generating the profile..."):
-            try:
-                brief, profile = generate_profile(
-                    name=name.strip(),
-                    linkedin_url=linkedin_url.strip(),
-                    company=company.strip(),
-                    location=location.strip(),
-                )
-                html = brief_to_html(brief)
-                markdown = brief_to_markdown(brief)
-                file_stem = brief.subject_name.replace(" ", "_").lower()
+people_tab, company_tab = st.tabs(["People Brief", "Company Brief"])
 
-                st.session_state["generated_html"] = html
-                st.session_state["generated_markdown"] = markdown
-                st.session_state["generated_name"] = brief.subject_name
-                st.session_state["result_count"] = len(profile.all_results())
-                st.session_state["file_stem"] = file_stem
-            except Exception as exc:
-                st.exception(exc)
+with people_tab:
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        name = st.text_input("Full name", placeholder="Jane Doe")
+    with col2:
+        linkedin_url = st.text_input(
+            "LinkedIn profile URL",
+            placeholder="https://www.linkedin.com/in/jane-doe/",
+        )
 
-if "generated_html" in st.session_state:
-    st.success(
-        f"Generated profile for {st.session_state['generated_name']} from "
-        f"{st.session_state['result_count']} collected public data points."
+    col3, col4 = st.columns([1, 1])
+    with col3:
+        company = st.text_input("Company (optional)", placeholder="Acme Corp")
+    with col4:
+        location = st.text_input("Location (optional)", placeholder="San Francisco")
+
+    run_clicked = st.button("Generate profile HTML", type="primary", disabled=not config_ok)
+
+    if run_clicked:
+        if not name.strip():
+            st.warning("Enter the person's full name.")
+        elif not linkedin_url.strip():
+            st.warning("Enter a LinkedIn profile URL.")
+        else:
+            with st.spinner("Gathering public data and generating the profile..."):
+                try:
+                    brief, profile = generate_profile(
+                        name=name.strip(),
+                        linkedin_url=linkedin_url.strip(),
+                        company=company.strip(),
+                        location=location.strip(),
+                    )
+                    html = brief_to_html(brief)
+                    markdown = brief_to_markdown(brief)
+                    file_stem = brief.subject_name.replace(" ", "_").lower()
+
+                    st.session_state["generated_html"] = html
+                    st.session_state["generated_markdown"] = markdown
+                    st.session_state["generated_name"] = brief.subject_name
+                    st.session_state["result_count"] = len(profile.all_results())
+                    st.session_state["file_stem"] = file_stem
+                except Exception as exc:
+                    st.exception(exc)
+
+    if "generated_html" in st.session_state:
+        st.success(
+            f"Generated profile for {st.session_state['generated_name']} from "
+            f"{st.session_state['result_count']} collected public data points."
+        )
+
+        action_col1, action_col2 = st.columns([1, 1])
+        with action_col1:
+            st.download_button(
+                "Download HTML",
+                data=st.session_state["generated_html"],
+                file_name=f"{st.session_state['file_stem']}_brief.html",
+                mime="text/html",
+                use_container_width=True,
+            )
+        with action_col2:
+            st.download_button(
+                "Download Markdown",
+                data=st.session_state["generated_markdown"],
+                file_name=f"{st.session_state['file_stem']}_brief.md",
+                mime="text/markdown",
+                use_container_width=True,
+            )
+
+        with st.expander("Preview HTML", expanded=True):
+            components.html(st.session_state["generated_html"], height=900, scrolling=True)
+
+        with st.expander("Generated Markdown"):
+            st.code(st.session_state["generated_markdown"], language="markdown")
+
+        template_path = Path(__file__).parent / "icebreaker" / "templates" / "profile.html"
+        if not template_path.exists():
+            st.warning("Template file is missing, so deployment packaging should be checked before sharing.")
+
+with company_tab:
+    st.caption("Research target companies, likely buyer roles, event signals, and outreach angles.")
+
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        company_name = st.text_input("Company name", placeholder="Nike")
+    with c2:
+        company_site = st.text_input("Company website", placeholder="https://www.nike.com")
+
+    c3, c4 = st.columns([1, 1])
+    with c3:
+        linkedin_company_url = st.text_input(
+            "LinkedIn company URL (optional)",
+            placeholder="https://www.linkedin.com/company/nike/",
+        )
+    with c4:
+        geography = st.text_input("Geography / market (optional)", placeholder="Middle East")
+
+    c5, c6 = st.columns([1, 1])
+    with c5:
+        industry = st.text_input("Industry (optional)", placeholder="Retail")
+    with c6:
+        event_focus = st.text_input(
+            "Event focus (optional)",
+            placeholder="exhibitions, activations, trade shows",
+        )
+
+    default_roles = (
+        "CMO, Marketing Director, Marketing Manager, Brand Director, "
+        "Brand Manager, Event Director, Event Manager"
+    )
+    target_roles_text = st.text_area("Target roles", value=default_roles, height=100)
+    services = st.text_area(
+        "Your services / offering (optional)",
+        placeholder="Exhibition design, experiential activations, branded environments",
+        height=100,
     )
 
-    action_col1, action_col2 = st.columns([1, 1])
-    with action_col1:
-        st.download_button(
-            "Download HTML",
-            data=st.session_state["generated_html"],
-            file_name=f"{st.session_state['file_stem']}_brief.html",
-            mime="text/html",
-            use_container_width=True,
+    company_clicked = st.button("Generate company brief", disabled=not config_ok)
+
+    if company_clicked:
+        if not company_name.strip():
+            st.warning("Enter a company name.")
+        else:
+            with st.spinner("Researching the company and generating the opportunity brief..."):
+                try:
+                    target_roles = [
+                        role.strip() for role in target_roles_text.split(",") if role.strip()
+                    ]
+                    brief, profile = generate_company_brief(
+                        company_name=company_name.strip(),
+                        website=company_site.strip(),
+                        linkedin_company_url=linkedin_company_url.strip(),
+                        geography=geography.strip(),
+                        industry=industry.strip(),
+                        target_roles=target_roles,
+                        event_focus=event_focus.strip(),
+                        services=services.strip(),
+                    )
+                    markdown = company_brief_to_markdown(brief)
+                    file_stem = brief.company_name.replace(" ", "_").lower()
+
+                    st.session_state["company_markdown"] = markdown
+                    st.session_state["company_name_generated"] = brief.company_name
+                    st.session_state["company_result_count"] = len(profile.all_results())
+                    st.session_state["company_file_stem"] = file_stem
+                except Exception as exc:
+                    st.exception(exc)
+
+    if "company_markdown" in st.session_state:
+        st.success(
+            f"Generated company brief for {st.session_state['company_name_generated']} from "
+            f"{st.session_state['company_result_count']} collected public data points."
         )
-    with action_col2:
         st.download_button(
-            "Download Markdown",
-            data=st.session_state["generated_markdown"],
-            file_name=f"{st.session_state['file_stem']}_brief.md",
+            "Download Company Markdown",
+            data=st.session_state["company_markdown"],
+            file_name=f"{st.session_state['company_file_stem']}_opportunity_brief.md",
             mime="text/markdown",
             use_container_width=True,
         )
-
-    with st.expander("Preview HTML", expanded=True):
-        components.html(st.session_state["generated_html"], height=900, scrolling=True)
-
-    with st.expander("Generated Markdown"):
-        st.code(st.session_state["generated_markdown"], language="markdown")
-
-    template_path = Path(__file__).parent / "icebreaker" / "templates" / "profile.html"
-    if not template_path.exists():
-        st.warning("Template file is missing, so deployment packaging should be checked before sharing.")
+        with st.expander("Company Brief Markdown", expanded=True):
+            st.code(st.session_state["company_markdown"], language="markdown")

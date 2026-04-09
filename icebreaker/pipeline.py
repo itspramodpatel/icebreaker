@@ -46,9 +46,14 @@ async def run_pipeline(identity: ResolvedIdentity, config: Config) -> ProfileDat
         urls = []
         seen = set()
 
-        direct_urls = [identity.linkedin_url]
-        if identity.twitter_handle:
-            direct_urls.append(f"https://x.com/{identity.twitter_handle}")
+        direct_urls = [
+            getattr(identity, "linkedin_url", None),
+            getattr(identity, "linkedin_company_url", None),
+            getattr(identity, "website", None),
+        ]
+        twitter_handle = getattr(identity, "twitter_handle", None)
+        if twitter_handle:
+            direct_urls.append(f"https://x.com/{twitter_handle}")
         for url in direct_urls:
             if url and url not in seen:
                 urls.append(url)

@@ -8,7 +8,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 
-from .models import MeetingBrief
+from .models import CompanyBrief, MeetingBrief
 
 
 def print_brief(brief: MeetingBrief, console: Console | None = None) -> None:
@@ -240,3 +240,73 @@ def brief_to_html(brief: MeetingBrief) -> str:
     html = html.replace("{{SUBJECT_NAME}}", brief.subject_name)
 
     return html
+
+
+def company_brief_to_markdown(brief: CompanyBrief) -> str:
+    """Convert company brief to Markdown."""
+    lines = [
+        f"# Company Opportunity Brief: {brief.company_name}",
+        "",
+    ]
+
+    if brief.website:
+        lines.extend([f"**Website:** {brief.website}", ""])
+
+    if brief.summary:
+        lines.extend(["## Company Summary", brief.summary, ""])
+
+    if brief.current_priorities:
+        lines.append("## Current Priorities")
+        for item in brief.current_priorities:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.opportunity_signals:
+        lines.append("## Opportunity Signals")
+        for item in brief.opportunity_signals:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.events_calendar:
+        lines.append("## Events and Exhibitions")
+        for item in brief.events_calendar:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.target_roles:
+        lines.append("## Target Roles")
+        for item in brief.target_roles:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.outreach_angles:
+        lines.append("## Outreach Angles")
+        for item in brief.outreach_angles:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.email_draft:
+        lines.extend(["## Email Draft", brief.email_draft, ""])
+
+    if brief.linkedin_message:
+        lines.extend(["## LinkedIn Message", brief.linkedin_message, ""])
+
+    if brief.call_talking_points:
+        lines.append("## Call Talking Points")
+        for item in brief.call_talking_points:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.warnings:
+        lines.append("## Risks and Gaps")
+        for item in brief.warnings:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    if brief.sources_used:
+        lines.append(f"*Sources: {', '.join(brief.sources_used)}*")
+        lines.append("")
+
+    lines.append("---")
+    lines.append("*Generated from publicly available information by IceBreaker.*")
+    return "\n".join(lines)
